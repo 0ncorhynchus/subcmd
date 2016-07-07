@@ -27,6 +27,10 @@
               (gethash str *command-container*))
             (rest argv))))
 
+(defun call-command (argv)
+  (multiple-value-bind (fn argv) (get-command argv)
+    (apply fn argv)))
+
 (defun usage ()
   (let ((usage (format nil "Commands:~%")))
     (with-hash-table-iterator (itr *command-container*)
