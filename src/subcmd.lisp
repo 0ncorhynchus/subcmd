@@ -21,29 +21,35 @@
              :implementation ,fn
              :documentation ,documentation))))
 
+(defun help (&rest args)
+  (format t "~a~%" (usage)))
+
 (defun get-command (argv)
-  (let ((str (first argv)))
-    (values (command-implementation
-              (gethash str *command-container*))
-            (rest argv))))
+  (let ((command (gethash (first argv) *command-container*)))
+    (if command
+      (values (command-implementation command) (rest argv))
+      (values nil (rest argv)))))
 
 (defun call-command (argv)
   (multiple-value-bind (fn argv) (get-command argv)
-    (apply fn argv)))
+    (if fn
+      (apply fn argv)
+      (help))))
 
 (defun usage ()
   (let ((usage (format nil "Commands:~%")))
-    (with-hash-table-iterator (itr *command-container*)
-      (loop
-        (multiple-value-bind (entry-p key value) (itr)
-          (if entry-p
-            (setf usage
-                  (concatenate
-                    'string
-                    usage
-                    (format nil "  ~va  ~a~%"
-                            *command-max-length*
-                            key
-                            (command-documentation value))))
-            (return))))
-      usage)))
+    (loop for key being the hash-keys of *command-container*
+          using (hash-value value)
+          do (setf usage
+                   (concatenate
+                     'string
+                     usage
+                     (format nil "  ~va  ~@(~a~)~%"
+                             *command-max-length*
+                             key
+                             (command-documentation value)))))
+    usage))
+
+
+(define-command "help"
+  :fn #'help :documentation "print help")
